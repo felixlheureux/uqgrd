@@ -1,4 +1,4 @@
-use crate::constants::CHECK_INTERVAL_MINUTES;
+use crate::constants::DEFAULT_CHECK_INTERVAL_MINUTES;
 use crate::constants::STATE_FILE;
 use crate::modules::api::{self, DetailActivity};
 use crate::modules::auth;
@@ -24,9 +24,9 @@ type GradesState = HashMap<String, CourseState>; // Key: Course Sigle (e.g., "IN
 pub async fn start_daemon() {
     // 1. Load Interval from Env (Default: 60 min)
     let interval_min: u64 = env::var("CHECK_INTERVAL")
-        .unwrap_or_else(|_| "60".to_string())
-        .parse()
-        .unwrap_or(60);
+        .ok() // Convert Result to Option
+        .and_then(|v| v.parse().ok()) // Parse string to u64, return None if fails
+        .unwrap_or(DEFAULT_CHECK_INTERVAL_MINUTES); // Fallback to constant
 
     println!("🚀 Starting UQGRD Daemon...");
     println!("   Interval: Every {} minutes", interval_min);
