@@ -37,18 +37,7 @@ else
     echo "No image found."
 fi
 
-# 3. Clean Rust Artifacts (Local dev)
-if [ -d "./target" ]; then
-    read -p "❓ Delete local Rust build artifacts (./target)? [y/N] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}Removing ./target...${NC}"
-        rm -rf ./target
-        echo -e "${GREEN}✅ Build artifacts cleaned.${NC}"
-    fi
-fi
-
-# 4. Clean Data/Credentials
+# 3. Clean Data/Credentials
 if [ -d "$DATA_DIR" ]; then
     echo -e "${RED}⚠️  WARNING: This will delete your saved credentials and grade history!${NC}"
     read -p "❓ Delete data directory ($DATA_DIR)? [y/N] " -n 1 -r

@@ -1,18 +1,16 @@
+use crate::constants::CHECK_INTERVAL_MINUTES;
+use crate::constants::STATE_FILE;
 use crate::modules::api::{self, DetailActivity};
 use crate::modules::auth;
+use chrono::Local;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::env;
 use std::fs;
 use std::thread;
 use std::time::Duration;
-use chrono::Local;
-use std::env;
-
-// --- CONFIGURATION ---
-const CHECK_INTERVAL_MINUTES: u64 = 60; // Check every hour
-const STATE_FILE: &str = "grades_state.json";
 
 // --- STATE MANAGEMENT ---
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -34,7 +32,10 @@ pub async fn start_daemon() {
     println!("   Interval: Every {} minutes", interval_min);
 
     loop {
-        println!("Checking grades at {}", Local::now().format("%Y-%m-%d %H:%M:%S"));
+        println!(
+            "Checking grades at {}",
+            Local::now().format("%Y-%m-%d %H:%M:%S")
+        );
 
         if let Err(e) = check_and_notify().await {
             eprintln!("❌ Error during check cycle: {}", e);
@@ -48,14 +49,14 @@ pub async fn start_daemon() {
 async fn check_and_notify() -> Result<(), String> {
     // 1. Load Credentials (API) - This will fail if not configured on the server
     let (username, password) = auth::get_credentials()?;
-    
+
     // 2. Load Saved State (Previous Grades)
     let mut state = load_state()?;
     let mut state_changed = false;
 
     // 3. Authenticate
     let token = api::get_token(&username, &password).await?;
-    
+
     // 4. Fetch Current Semester
     let current_sem_code = api::get_current_semester_code();
     let transcript = api::fetch_transcript(&token).await?;
@@ -66,30 +67,42 @@ async fn check_and_notify() -> Result<(), String> {
             for activity in &prog.activites {
                 // Fetch live details
                 let details = api::fetch_course_details(
-                    &token, 
-                    sem.trimestre, 
-                    &activity.sigle, 
-                    activity.groupe
-                ).await;
+                    &token,
+                    sem.trimestre,
+                    &activity.sigle,
+                    activity.groupe,
+                )
+                .await;
 
                 match details {
                     Ok(new_data) => {
                         // Check if grade changed
                         if has_grade_changed(&state, &activity.sigle, &new_data) {
-                            println!("🔔 CHANGE DETECTED: {} ({})", activity.sigle, activity.titre);
-                            
+                            println!(
+                                "🔔 CHANGE DETECTED: {} ({})",
+                                activity.sigle, activity.titre
+                            );
+
                             // Send Alert
-                            if let Err(e) = send_email_alert(&username, &activity.sigle, &activity.titre, &new_data) {
+                            if let Err(e) = send_email_alert(
+                                &username,
+                                &activity.sigle,
+                                &activity.titre,
+                                &new_data,
+                            ) {
                                 eprintln!("   Failed to send email: {}", e);
                             } else {
                                 println!("   📧 Email sent successfully!");
                             }
 
                             // Update State
-                            state.insert(activity.sigle.clone(), CourseState {
-                                total: new_data.total,
-                                note: new_data.note,
-                            });
+                            state.insert(
+                                activity.sigle.clone(),
+                                CourseState {
+                                    total: new_data.total,
+                                    note: new_data.note,
+                                },
+                            );
                             state_changed = true;
                         }
                     }
@@ -98,7 +111,10 @@ async fn check_and_notify() -> Result<(), String> {
             }
         }
     } else {
-        println!("   No active semester found for code {} (Are you registered?)", current_sem_code);
+        println!(
+            "   No active semester found for code {} (Are you registered?)",
+            current_sem_code
+        );
     }
 
     // 5. Save new state
@@ -127,7 +143,7 @@ fn has_grade_changed(state: &GradesState, sigle: &str, new_data: &DetailActivity
             total_diff || note_diff
         }
         None => {
-            // New course found. 
+            // New course found.
             // If it has data (not null), trigger initial alert.
             new_data.total.is_some() || new_data.note.is_some()
         }
@@ -150,7 +166,7 @@ fn load_state() -> Result<GradesState, String> {
 fn save_state(state: &GradesState) -> Result<(), String> {
     let config_dir = auth::get_config_dir()?;
     let state_path = config_dir.join(STATE_FILE);
-    
+
     let json = serde_json::to_string_pretty(state).map_err(|e| e.to_string())?;
     fs::write(state_path, json).map_err(|e| e.to_string())?;
     Ok(())
@@ -158,14 +174,19 @@ fn save_state(state: &GradesState) -> Result<(), String> {
 
 // --- EMAILER ---
 
-fn send_email_alert(username: &str, sigle: &str, title: &str, data: &DetailActivity) -> Result<(), String> {
+fn send_email_alert(
+    username: &str,
+    sigle: &str,
+    title: &str,
+    data: &DetailActivity,
+) -> Result<(), String> {
     // Load SMTP settings from Env Vars (Standard for Docker/Cloud)
     let smtp_user = std::env::var("SMTP_USERNAME").map_err(|_| "SMTP_USERNAME env missing")?;
     let smtp_pass = std::env::var("SMTP_PASSWORD").map_err(|_| "SMTP_PASSWORD env missing")?;
     let smtp_host = std::env::var("SMTP_SERVER").unwrap_or_else(|_| "smtp.gmail.com".to_string());
-    
-    let dest_email = format!("{}@uqam.ca", username); 
-    
+
+    let dest_email = format!("{}@uqam.ca", username);
+
     let grade_display = data.note.clone().unwrap_or("N/A".to_string());
     let total_display = match data.total {
         Some(v) => format!("{:.2}%", v),

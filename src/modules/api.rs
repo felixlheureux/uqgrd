@@ -87,14 +87,16 @@ pub struct DetailActivity {
 pub async fn get_token(username: &str, password: &str) -> Result<String, String> {
     let client = Client::new();
     let payload = json!({ "identifiant": username, "motDePasse": password });
-    
-    let response = client.post(AUTH_ENDPOINT)
+
+    let response = client
+        .post(AUTH_ENDPOINT)
         .json(&payload)
         .send()
         .await
         .map_err(|e| format!("Request failed: {}", e))?;
 
-    let auth_data = response.json::<AuthResponse>()
+    let auth_data = response
+        .json::<AuthResponse>()
         .await
         .map_err(|e| format!("Failed to parse auth response: {}", e))?;
 
@@ -107,34 +109,46 @@ pub async fn get_token(username: &str, password: &str) -> Result<String, String>
 
 pub async fn fetch_transcript(token: &str) -> Result<Vec<SemesterResult>, String> {
     let client = Client::new();
-    
-    let response = client.get(RESUME_ENDPOINT)
+
+    let response = client
+        .get(RESUME_ENDPOINT)
         .bearer_auth(token)
         .send()
         .await
         .map_err(|e| format!("Failed to fetch transcript: {}", e))?;
 
-    let mut resume: ResumeResponse = response.json()
+    let mut resume: ResumeResponse = response
+        .json()
         .await
         .map_err(|e| format!("Failed to parse transcript: {}", e))?;
 
     // Sort descending (Newest first)
-    resume.data.resultats.sort_by(|a, b| b.trimestre.cmp(&a.trimestre));
+    resume
+        .data
+        .resultats
+        .sort_by(|a, b| b.trimestre.cmp(&a.trimestre));
 
     Ok(resume.data.resultats)
 }
 
-pub async fn fetch_course_details(token: &str, semester: u32, sigle: &str, group: u32) -> Result<DetailActivity, String> {
+pub async fn fetch_course_details(
+    token: &str,
+    semester: u32,
+    sigle: &str,
+    group: u32,
+) -> Result<DetailActivity, String> {
     let client = Client::new();
     let url = format!("{}/{}/{}/{}", DETAIL_ENDPOINT, semester, sigle, group);
 
-    let response = client.get(&url)
+    let response = client
+        .get(&url)
         .bearer_auth(token)
         .send()
         .await
         .map_err(|e| format!("Failed to fetch course {}: {}", sigle, e))?;
 
-    let details: CourseDetailResponse = response.json()
+    let details: CourseDetailResponse = response
+        .json()
         .await
         .map_err(|e| format!("Failed to parse course {}: {}", sigle, e))?;
 
@@ -160,15 +174,17 @@ pub fn get_current_semester_code() -> u32 {
     let month = now.month();
 
     match month {
-        1..=4 => (year * 10 + 1) as u32,       // Hiver (Jan-Apr)
-        5..=8 => (year * 10 + 2) as u32,       // Été (May-Aug)
-        _ => (year * 10 + 3) as u32,           // Automne (Sept-Dec)
+        1..=4 => (year * 10 + 1) as u32, // Hiver (Jan-Apr)
+        5..=8 => (year * 10 + 2) as u32, // Été (May-Aug)
+        _ => (year * 10 + 3) as u32,     // Automne (Sept-Dec)
     }
 }
 
 pub fn format_semester_name(code: u32) -> String {
     let s = code.to_string();
-    if s.len() != 5 { return s; }
+    if s.len() != 5 {
+        return s;
+    }
 
     let year_part: i32 = s[0..4].parse().unwrap_or(0);
     let term_part: u32 = s[4..5].parse().unwrap_or(0);

@@ -1,4 +1,4 @@
-use crate::modules::api::{format_semester_name, Programme, SemesterResult};
+use crate::modules::api::{Programme, SemesterResult, format_semester_name};
 use inquire::{Password, PasswordDisplayMode, Select, Text};
 use std::fmt;
 
