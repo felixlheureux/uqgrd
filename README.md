@@ -10,17 +10,30 @@ A CLI tool and background daemon for monitoring UQAM student grades. It interfac
 - **Email Alerts:** Sends SMTP notifications immediately upon detecting a grade change.
 - **Containerized:** Includes scripts for deployment via Podman or Docker.
 
-## Requirements
+## Install
 
-- Rust (Latest Stable)
-- Podman or Docker (for deployment)
-- OpenSSL (libssl-dev)
-
-## Build
+One-liner (Linux & macOS):
 
 ```bash
-cargo build --release
+curl -sSfL https://raw.githubusercontent.com/felixlheureux/uqgrd/main/install.sh | bash
 ```
+
+This will install Rust (if missing), resolve dependencies, build from source, and add `uqgrd` to your PATH.
+
+### Manual Install
+
+```bash
+git clone https://github.com/felixlheureux/uqgrd.git
+cd uqgrd
+cargo build --release
+cp target/release/uqgrd ~/.local/bin/
+```
+
+### Requirements
+
+- Rust (Latest Stable) — auto-installed by `install.sh`
+- OpenSSL (`libssl-dev` / `openssl-devel`) — auto-installed by `install.sh`
+- Podman or Docker (for daemon deployment only)
 
 ## Usage
 
@@ -29,7 +42,7 @@ cargo build --release
 Store your UQAM `Code permanent` and password locally.
 
 ```bash
-./target/release/uqgrd credentials
+uqgrd credentials
 ```
 
 ### 2. View Grades
@@ -37,13 +50,13 @@ Store your UQAM `Code permanent` and password locally.
 Interactively select a semester to view:
 
 ```bash
-./target/release/uqgrd grades
+uqgrd grades
 ```
 
 View the current semester automatically:
 
 ```bash
-./target/release/uqgrd grades --current
+uqgrd grades --current
 ```
 
 ### 3. Daemon Mode
@@ -51,7 +64,7 @@ View the current semester automatically:
 Starts the monitoring loop. This requires environment variables for SMTP configuration (see Deployment).
 
 ```bash
-./target/release/uqgrd start
+uqgrd start
 ```
 
 ## Deployment
