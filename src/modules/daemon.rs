@@ -19,7 +19,7 @@ struct CourseState {
     note: Option<String>,
 }
 
-type GradesState = HashMap<String, CourseState>; // Key: Course Sigle (e.g., "INF3173")
+type GradesState = HashMap<String, CourseState>;
 
 pub async fn start_daemon() {
     // 1. Load Interval from Env (Default: 60 min)
