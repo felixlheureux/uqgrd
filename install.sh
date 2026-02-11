@@ -39,6 +39,11 @@ if ! check_cmd cargo; then
     # shellcheck source=/dev/null
     source "$HOME/.cargo/env"
     info "Rust installed"
+else
+    if command -v rustup &>/dev/null; then
+        info "Updating Rust..."
+        rustup update stable
+    fi
 fi
 info "Rust: $(rustc --version)"
 
