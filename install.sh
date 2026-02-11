@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Updated: 2026-02-10 (cache buster)
+# Updated: 2026-02-10 (v0.1.2)
 
 REPO="felixlheureux/uqgrd"
 BINARY="uqgrd"

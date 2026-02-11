@@ -59,6 +59,7 @@ pub fn select_semester(
 pub fn prompt_credentials() -> Result<(String, String), String> {
     let username = Text::new("Enter UQAM Username (Code permanent)")
         .prompt()
+        .map(|u| u.trim().to_string())
         .map_err(|e| e.to_string())?;
 
     let password = Password::new("Enter Password:")

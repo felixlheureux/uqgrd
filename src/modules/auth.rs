@@ -65,7 +65,7 @@ pub fn get_credentials() -> Result<(String, String), String> {
             let entry = Entry::new(APP_NAME, &config.username).map_err(|e| e.to_string())?;
             entry
                 .get_password()
-                .map_err(|e| format!("Keyring Error: {}", e))?
+                .map_err(|e| format!("Keyring Error for user '{}': {}", config.username, e))?
         }
     };
 
